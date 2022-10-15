@@ -33,9 +33,15 @@ const PopupMenu = imports.ui.popupMenu;
 const Mainloop = imports.mainloop;
 const _ = ExtensionUtils.gettext;
 
+const Me                = imports.misc.extensionUtils.getCurrentExtension()
+const Utils             = Me.imports.utils
+
 const Indicator = GObject.registerClass(
 class Indicator extends PanelMenu.Button {
     _init() {
+        this._settings = Utils.getSettings()
+        this._settings.connect('changed', () => this.update())
+
         super._init(0.0, _('SSH Tunnel Indicator'));
         this.icon=new St.Icon({
             icon_name: 'content-loading-symbolic',
@@ -81,6 +87,15 @@ class Indicator extends PanelMenu.Button {
     }
 
     update(){
+        this.menu.removeAll() 
+
+        const entries     = this._settings.get_strv('tunnels');
+        const showAdd     = this._settings.get_boolean('show-add');
+        const showRestart = this._settings.get_boolean('show-restart');
+        //entries.push("asdf");
+        //Main.notify(JSON.stringify(entries));
+        //const tunnel    = entries.map(data => JSON.parse(data)) 
+
         switch(getServicesState("system",["autossh@morty"])["autossh@morty"]){
             case "active":
                 this.show_active();
@@ -90,6 +105,14 @@ class Indicator extends PanelMenu.Button {
                 break;
             default:
                 this.show_inactive();
+        }
+
+        if (showAdd) {
+            const settings = new PopupMenu.PopupMenuItem(_('Add Tunnel'))
+            settings.connect('activate', () =>{
+                ExtensionUtils.openPrefs();
+            })
+            this.menu.addMenuItem(settings)
         }
     }
 

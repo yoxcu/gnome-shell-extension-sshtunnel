@@ -2,10 +2,11 @@
   "name": "SSHTunnel",
   "description": "Start and monitor sshtunnels",
   "uuid": "sshtunnel@yoxcu.de",
+  "settings-schema": "org.gnome.shell.extensions.sshtunnel",
   "shell-version": [
     "42"
   ],
-  "url": "https://github.com/hardpixel/systemd-manager",
+  "url": "https://github.com/yoxcu/gnome-shell-extension-sshtunnel",
   "gettext-domain": "SSHTunnel",
   "version": 1
 }
