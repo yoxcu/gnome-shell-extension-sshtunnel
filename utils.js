@@ -4,6 +4,16 @@ const Config         = imports.misc.config
 const ExtensionUtils = imports.misc.extensionUtils
 const Me             = ExtensionUtils.getCurrentExtension()
 
+function Tunnel(hostname,forwards,reverses,options,id=null,enabled=true){
+    this.hostname=hostname;
+    this.forwards=forwards;
+    this.reverses=reverses;
+    this.options=options;
+    this.id=id;
+    this.enabled=enabled;
+  }
+
+
 function getSettings(schema) {
   schema = schema || Me.metadata['settings-schema']
 
