@@ -39,8 +39,9 @@ const Utils             = Me.imports.utils
 const Indicator = GObject.registerClass(
 class Indicator extends PanelMenu.Button {
     _init() {
-        this._settings = Utils.getSettings()
-        this._settings.connect('changed', () => this.update())
+        this.settings = ExtensionUtils.getSettings(
+        'org.gnome.shell.extensions.sshtunnel');
+        //this._settings.connect('changed', () => this.update())
 
         super._init(0.0, _('SSH Tunnel Indicator'));
         this.icon=new St.Icon({
@@ -89,9 +90,9 @@ class Indicator extends PanelMenu.Button {
     update(){
         this.menu.removeAll() 
 
-        const entries     = this._settings.get_strv('tunnels');
-        const showAdd     = this._settings.get_boolean('show-add');
-        const showRestart = this._settings.get_boolean('show-restart');
+        const entries     = this.settings.get_strv('tunnels');
+        const showAdd     = this.settings.get_boolean('show-add');
+        const showRestart = this.settings.get_boolean('show-restart');
         //entries.push("asdf");
         //Main.notify(JSON.stringify(entries));
         //const tunnel    = entries.map(data => JSON.parse(data)) 
