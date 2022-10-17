@@ -4,14 +4,37 @@ const Config         = imports.misc.config
 const ExtensionUtils = imports.misc.extensionUtils
 const Me             = ExtensionUtils.getCurrentExtension()
 
-function Tunnel(hostname,forwards,reverses,options,id=null,enabled=true){
+function Tunnel(hostname,forwards,reverses,options,user,id=null,enabled=true){
+    this.user=user
     this.hostname=hostname;
     this.forwards=forwards;
     this.reverses=reverses;
     this.options=options;
     this.id=id;
     this.enabled=enabled;
+}
+
+function safeSpawn(cmd) {
+  try {
+    return GLib.spawn_command_line_sync(cmd)
+  } catch (e) {
+    return [false, Bytes.fromString(''), null, null]
   }
+}
+
+function command(args, pipe) {
+  const cmd = [].concat(args).filter(item => !!item).join(' ')
+  const str = pipe ? [cmd, pipe].join(' | ') : cmd
+
+  return safeSpawn(`sh -c "${str}"`)
+}
+
+function systemctl(type, args, pipe) {
+  const cmd = [`systemctl --${type}`].concat(args)
+  return command(cmd, pipe)
+}
+
+
 
 
 function getSettings(schema) {
