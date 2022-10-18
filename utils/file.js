@@ -2,7 +2,7 @@ const {Gio} = imports.gi;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
-const Service           = Me.imports.utils.service;
+const Service = Me.imports.utils.service;
 const Tunnel = Me.imports.utils.tunnel;
 
 function createServiceFiles(tunnel){

@@ -18,9 +18,6 @@
 
 /* exported init */
 
-const GLib   = imports.gi.GLib
-const Config = imports.misc.config
-
 const GETTEXT_DOMAIN = 'SSHTunnel';
 
 const { GObject, St } = imports.gi;
@@ -30,9 +27,8 @@ const Main = imports.ui.main;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const Mainloop = imports.mainloop;
-const _ = ExtensionUtils.gettext;
 
-const Me                = imports.misc.extensionUtils.getCurrentExtension()
+const Me = imports.misc.extensionUtils.getCurrentExtension()
 const Service = Me.imports.utils.service;
 const Tunnel = Me.imports.utils.tunnel;
 
