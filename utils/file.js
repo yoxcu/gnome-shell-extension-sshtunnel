@@ -1,4 +1,4 @@
-const {Gio, GLib } = imports.gi;
+const {Gio} = imports.gi;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
@@ -15,7 +15,12 @@ function createServiceFiles(tunnel){
     if (tunnelFile != null){
         files.push(tunnelFile);
     }
-    return moveFiles(files);
+    let cmd = getMoveFilesCmd(files);
+    if (tunnel.enabled) {
+        cmd += Service.getRestartServiceCmd(tunnel);
+        cmd += Service.getStartServiceCmd(tunnel);
+    }
+    return Service.runCmd(cmd);
 }
 
 function getServiceFile(tunnel){
@@ -61,10 +66,12 @@ function deleteServiceFiles(tunnel){
     let tunnels = Tunnel.parseTunnels(settings.get_strv("tunnels"));
     let tunnelsSameUser = tunnels.filter(obj => obj.user == tunnel.user);
     let files = ['/etc/default/sshtunnel@' + tunnel.id];
-    if (tunnelsSameUser.length = 1){
+    if (tunnelsSameUser.length <= 1){
         files.push('/etc/systemd/system/sshtunnel.' + tunnel.user + '@.service');
     }
-    return deleteFiles(files);
+    let cmd = Service.getStopServiceCmd(tunnel);
+    cmd += getDeleteFilesCmd(files);
+    return Service.runCmd(cmd);
 }
 
 function checkFileContent(path,text){
@@ -82,7 +89,7 @@ function checkFileContent(path,text){
 
 //sudo file Operations
 
-function moveFiles(files){
+function getMoveFilesCmd(files){
     if (files.length <= 0) {
         return true;
     }
@@ -91,11 +98,10 @@ function moveFiles(files){
         cmd += "mv " + obj[0] + " " + obj[1] + "; ";
     })
     cmd += "systemctl daemon-reload;"
-    const res = GLib.spawn_command_line_sync(`pkexec sh -c "${cmd}"`);
-    return res[3]==0;
+    return cmd;
 }
 
-function deleteFiles(files){
+function getDeleteFilesCmd(files){
     if (files.length <= 0) {
         return true;
     }
@@ -104,8 +110,7 @@ function deleteFiles(files){
         cmd += "rm " + obj + "; ";
     })
     cmd += "systemctl daemon-reload;"
-    let [ok, out, err, exit] = GLib.spawn_command_line_sync(`pkexec sh -c "${cmd}"`);
-    return exit == 0;
+    return cmd;
 }
 
 //helper Functions

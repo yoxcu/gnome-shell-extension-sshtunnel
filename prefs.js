@@ -8,6 +8,7 @@ const Me = ExtensionUtils.getCurrentExtension();
 
 const Tunnel = Me.imports.utils.tunnel;
 const File = Me.imports.utils.file;
+const Service = Me.imports.utils.service;
 
 function init() {
 }
@@ -28,62 +29,80 @@ function fillPreferencesWindow(window) {
     let tunnels = Tunnel.parseTunnels(settings.get_strv("tunnels"));
     
     window.set_can_navigate_back(true);
-   
-    // Create a preferences page and group
     mainPage = new Adw.PreferencesPage();
+    window.add(mainPage);
+    
+    //----------------------------------tunnel Group---------------------
     const tunnelGroup = new Adw.PreferencesGroup();
-
+    mainPage.add(tunnelGroup);
+    tunnelGroup.set_title("Tunnels");
+    
     const newTunnelButton = new Gtk.Button();
     newTunnelButton.set_icon_name("list-add-symbolic");
     newTunnelButton.connect('clicked', () => {
         window.present_subpage(fillEditTunnelPage(window));
     });
-
-    tunnelGroup.set_title("Tunnels");
     tunnelGroup.set_header_suffix(newTunnelButton);
 
-    mainPage.add(tunnelGroup);
 
-    tunnels.forEach(obj => {
-        const row = new Adw.ActionRow({ title: obj.hostname });
+    tunnels.forEach(tunnel => {
+        const row = new Adw.ActionRow({ title: tunnel.hostname });
         const toggle = new Gtk.Switch({
-            active: obj.enabled,
+            active: tunnel.enabled,
             valign: Gtk.Align.CENTER,
+        });
+        toggle.connect('state-set', () => {
+            tunnel.enabled = toggle.active;
+            if (Service.updateTunnelState(tunnel)){
+                toggle.set_state(tunnel.enabled);
+                let str = Tunnel.stringifyTunnels(tunnels);
+                settings.set_strv("tunnels",str);
+            }
+            return true;
         });
         row.add_suffix(toggle);
         
         const settingsButton = new Gtk.Button();
         settingsButton.set_icon_name("emblem-system-symbolic");
         settingsButton.connect('clicked', () => {
-            window.present_subpage(fillEditTunnelPage(window,obj));
+            window.present_subpage(fillEditTunnelPage(window,tunnel));
         });
         row.add_suffix(settingsButton);
 
         tunnelGroup.add(row);
     });
 
-    // Create a new preferences row
-    const row = new Adw.ActionRow({ title: 'Show Add Button' });
-    tunnelGroup.add(row);
+    //----------------------------------general Group---------------------
+    const generalGroup = new Adw.PreferencesGroup();
+    mainPage.add(generalGroup);
+    generalGroup.set_title("General Settings");
+    const row = new Adw.ActionRow({ title: 'Show Settings Button' });
+    generalGroup.add(row);
 
-    // Create the switch and bind its value to the `show-indicator` key
     const toggle = new Gtk.Switch({
-        active: settings.get_boolean ('show-add'),
+        active: settings.get_boolean ('show-settings'),
         valign: Gtk.Align.CENTER,
     });
+
     settings.bind(
-        'show-add',
+        'show-settings',
         toggle,
         'active',
         Gio.SettingsBindFlags.DEFAULT
     );
 
-    // Add the switch to the row
     row.add_suffix(toggle);
     row.activatable_widget = toggle;
 
-    // Add our page to the window
-    window.add(mainPage);
+    const refreshTime = new Adw.EntryRow();
+    refreshTime.set_title("Time to refresh Extension");
+    refreshTime.set_text(settings.get_int("refresh-time").toString());
+    generalGroup.add(refreshTime);
+    
+    refreshTime.connect("entry-activated", () =>{
+        settings.set_int("refresh-time",parseInt(refreshTime.get_text()));
+    })
+
 }
 
 function fillEditTunnelPage(window,tunnel=null){

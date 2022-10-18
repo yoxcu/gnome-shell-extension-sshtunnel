@@ -8,16 +8,16 @@
       <description>A list of Tunnels</description>
     </key>
 
-    <key type="b" name="show-add">
+    <key type="b" name="show-settings">
       <default>true</default>
       <summary>Show the add services button</summary>
-      <description>Whether to show the add services button as last entry in the extensions list.</description>
+      <description>Whether to show the settings button as last entry in the extensions list.</description>
     </key>
 
-    <key type="b" name="show-restart">
-      <default>true</default>
-      <summary>Show the restart button for each service</summary>
-      <description>Whether to show the restart button for each service.</description>
+    <key type="i" name="refresh-time">
+      <default>10</default>
+      <summary>Wait to next refresh</summary>
+      <description>How long to wait for next refresh.</description>
     </key>
 
     </schema>

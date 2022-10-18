@@ -18,7 +18,6 @@
 
 /* exported init */
 
-const Bytes  = imports.byteArray
 const GLib   = imports.gi.GLib
 const Config = imports.misc.config
 
@@ -34,43 +33,44 @@ const Mainloop = imports.mainloop;
 const _ = ExtensionUtils.gettext;
 
 const Me                = imports.misc.extensionUtils.getCurrentExtension()
-const Utils             = Me.imports.utils
+const Service = Me.imports.utils.service;
+const Tunnel = Me.imports.utils.tunnel;
 
 const Indicator = GObject.registerClass(
 class Indicator extends PanelMenu.Button {
     _init() {
         this.settings = ExtensionUtils.getSettings(
         'org.gnome.shell.extensions.sshtunnel');
-        //this._settings.connect('changed', () => this.update())
-
-        super._init(0.0, _('SSH Tunnel Indicator'));
-        this.icon=new St.Icon({
-            icon_name: 'content-loading-symbolic',
-            style_class: 'system-status-icon',
-        });
-        this.add_child(this.icon);
-
-        let turn_on = new PopupMenu.PopupMenuItem(_('Turn Service On'));
-        turn_on.connect('activate', () => {
-            this.enable_service()
-            Main.notify(_('SSH Tunnel Service enabled'));
-        });
-        this.menu.addMenuItem(turn_on);
+        this.settings.connect('changed', () => {
+            this.newSettings = true;
+        })
         
-        let turn_off = new PopupMenu.PopupMenuItem(_('Turn Service Off'));
-        turn_off.connect('activate', () => {
-            this.disable_service()
-            Main.notify(_('SSH Tunnel Service disabled'))
-        });
-        this.menu.addMenuItem(turn_off);
+        this.show_activating();
+        super._init(0.0, _('SSH Tunnel Indicator'));
+        this.newSettings = true;
+        this.update();
+    }
 
-        this.initializeTimer();
+    reloadSettings(){
+        this.tunnels = Tunnel.parseTunnels(this.settings.get_strv('tunnels'));
+        this.serviceNames = [];
+        this.tunnels.filter(tunnel => tunnel.enabled).forEach(tunnel => {
+            this.serviceNames.push("sshtunnel."+tunnel.user+"@"+tunnel.id)
+        })
+        this.showSettingsButton = this.settings.get_boolean('show-settings');
+        this.refreshTime = this.settings.get_int('refresh-time');
+        this.updateTimeChanged();
+        this.newSettings = false;
+    }
+
+    saveSettings(){
+        let str = Tunnel.stringifyTunnels(this.tunnels);
+        this.settings.set_strv("tunnels",str);
     }
 
     initializeTimer() {
         // used to query sensors and update display
-        let update_time = 1;
-        this.refreshTimeoutId = Mainloop.timeout_add_seconds(update_time, (self) => {
+        this.refreshTimeoutId = Mainloop.timeout_add_seconds(this.refreshTime, (self) => {
             // only update menu if we have hot sensors
             this.update();
 
@@ -87,29 +87,41 @@ class Indicator extends PanelMenu.Button {
         }
     }
 
+    updateTimeChanged() {
+        this.destroyTimer();
+        this.initializeTimer();
+    }
+
     update(){
-        this.menu.removeAll() 
-
-        const entries     = this.settings.get_strv('tunnels');
-        const showAdd     = this.settings.get_boolean('show-add');
-        const showRestart = this.settings.get_boolean('show-restart');
-        //entries.push("asdf");
-        //Main.notify(JSON.stringify(entries));
-        //const tunnel    = entries.map(data => JSON.parse(data)) 
-
-        switch(getServicesState("system",["autossh@morty"])["autossh@morty"]){
-            case "active":
-                this.show_active();
-                break;
-            case "activating":
-                this.show_activating();
-                break;
-            default:
-                this.show_inactive();
+        this.menu.removeAll();
+        this.remove_child(this.icon);
+        if (this.newSettings){
+            this.reloadSettings();
         }
 
-        if (showAdd) {
-            const settings = new PopupMenu.PopupMenuItem(_('Add Tunnel'))
+        this.tunnels.forEach(tunnel => {
+            const toggle = new PopupMenu.PopupSwitchMenuItem(tunnel.hostname, tunnel.enabled);
+            this.menu.addMenuItem(toggle);
+            toggle.connect('toggled', () => {
+                tunnel.enabled = toggle.state;
+                Service.updateTunnelStateAsync(tunnel);
+                this.saveSettings();
+            });
+        });
+
+        let states= Service.getServicesState(this.serviceNames);
+        if (states.length <=0){
+            this.show_empty();
+        }else if (states.every(service => service == "active")){
+            this.show_active();
+        } else if (states.some(service => service == "activating")){
+            this.show_activating();
+        } else {
+            this.show_dead();
+        }
+   
+        if (this.showSettingsButton) {
+            const settings = new PopupMenu.PopupMenuItem(_('Settings'))
             settings.connect('activate', () =>{
                 ExtensionUtils.openPrefs();
             })
@@ -117,16 +129,15 @@ class Indicator extends PanelMenu.Button {
         }
     }
 
-    enable_service(){
-        runServiceAction("enable", "system", "autossh@morty");
-    }
-
-    disable_service(){
-        runServiceAction("disable", "system", "autossh@morty");
+    show_empty(){
+        this.icon=new St.Icon({
+            icon_name: 'emblem-system-symbolic',
+            style_class: 'system-status-icon',
+        });
+        this.add_child(this.icon);
     }
 
     show_active(){
-        this.remove_child(this.icon);
         this.icon=new St.Icon({
             icon_name: 'emblem-ok-symbolic',
             style_class: 'system-status-icon',
@@ -135,7 +146,6 @@ class Indicator extends PanelMenu.Button {
     }
 
     show_activating(){
-        this.remove_child(this.icon);
         this.icon=new St.Icon({
             icon_name: 'content-loading-symbolic',
             style_class: 'system-status-icon',
@@ -143,8 +153,7 @@ class Indicator extends PanelMenu.Button {
         this.add_child(this.icon);
     }
  
-    show_inactive(){
-        this.remove_child(this.icon);
+    show_dead(){
         this.icon=new St.Icon({
             icon_name: 'computer-fail-symbolic',
             style_class: 'system-status-icon',
@@ -158,38 +167,6 @@ class Indicator extends PanelMenu.Button {
     }
 });
 
-function safeSpawn(cmd) {
-  try {
-    return GLib.spawn_command_line_sync(cmd)
-  } catch (e) {
-    return [false, Bytes.fromString(''), null, null]
-  }
-}
-
-function command(args, pipe) {
-  const cmd = [].concat(args).filter(item => !!item).join(' ')
-  const str = pipe ? [cmd, pipe].join(' | ') : cmd
-
-  return safeSpawn(`sh -c "${str}"`)
-}
-
-function systemctl(type, args, pipe) {
-  const cmd = [`systemctl --${type}`].concat(args)
-  return command(cmd, pipe)
-}
-
-function getServicesState(type, services) {
-  const res = systemctl(type, ['is-failed', ...services])
-  const out = Bytes.toString(res[1])
-  return out.split('\n').reduce(
-   (all, value, idx) => ({ ...all, [services[idx]]: value }), {}
-  )
-}
-
-function runServiceAction(action, type, service) {
-  let cmd = `systemctl ${action} ${service} --${type} --now`
-  GLib.spawn_command_line_async(`sh -c "${cmd}; exit"`)
-}
 
 class Extension {
     constructor(uuid) {
