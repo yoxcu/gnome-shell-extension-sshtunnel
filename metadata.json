@@ -4,7 +4,8 @@
   "uuid": "sshtunnel@yoxcu.de",
   "settings-schema": "org.gnome.shell.extensions.sshtunnel",
   "shell-version": [
-    "42"
+    "42",
+    "43"
   ],
   "url": "https://github.com/yoxcu/gnome-shell-extension-sshtunnel",
   "gettext-domain": "SSHTunnel",
