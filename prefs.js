@@ -26,7 +26,7 @@ function fillPreferencesWindow(window) {
     const settings = ExtensionUtils.getSettings(
         'org.gnome.shell.extensions.sshtunnel');
    // settings.set_strv("tunnels",[]);
-    let tunnels = Tunnel.parseTunnels(settings.get_strv("tunnels"));
+    const tunnels = Tunnel.parseTunnels(settings.get_strv("tunnels"));
     
     window.set_can_navigate_back(true);
     mainPage = new Adw.PreferencesPage();
@@ -53,9 +53,9 @@ function fillPreferencesWindow(window) {
         });
         toggle.connect('state-set', () => {
             tunnel.enabled = toggle.active;
-            if (Service.updateTunnelState(tunnel)){
+            if (Service.updateServiceState(tunnel)){
                 toggle.set_state(tunnel.enabled);
-                let str = Tunnel.stringifyTunnels(tunnels);
+                const str = Tunnel.stringifyTunnels(tunnels);
                 settings.set_strv("tunnels",str);
             }
             return true;
@@ -140,15 +140,15 @@ function fillEditTunnelPage(window,tunnel=null){
     tunnelHost.set_text(tunnel.hostname);
     editTunnelGroup.add(tunnelHost);
 
-    let [forwardsGroup, forwardsRows] = createOptionsGroup(tunnel.forwards,defaultForward);
+    const [forwardsGroup, forwardsRows] = createOptionsGroup(tunnel.forwards,defaultForward);
     forwardsGroup.set_title("Forward Ports");
     editTunnelGroup.add(forwardsGroup);
 
-    let [reversesGroup, reversesRows] = createOptionsGroup(tunnel.reverses,defaultReverse);
+    const [reversesGroup, reversesRows] = createOptionsGroup(tunnel.reverses,defaultReverse);
     reversesGroup.set_title("Reverse Ports");
     editTunnelGroup.add(reversesGroup);
 
-    let [optionsGroup, optionsRows] = createOptionsGroup(tunnel.options,defaultOption);
+    const [optionsGroup, optionsRows] = createOptionsGroup(tunnel.options,defaultOption);
     optionsGroup.set_title("Additional SSH Options");
     editTunnelGroup.add(optionsGroup);
 
@@ -238,7 +238,7 @@ function refreshSettingsPage(window){
 //helper functions
 
 function getArrayFromRows(rows){
-    let arr = [];
+    const arr = [];
     rows.forEach(row => {
         arr.push(row.get_text());
     });
@@ -246,8 +246,8 @@ function getArrayFromRows(rows){
 }
 
 function getCurrentUser(){
-    let cmd = "whoami";
-    let [ok, out, err, exit] = GLib.spawn_command_line_sync(`${cmd}`);
+    const cmd = "whoami";
+    const [ok, out, err, exit] = GLib.spawn_command_line_sync(`${cmd}`);
     return Bytes.toString(out).slice(0,-1);
 }
 

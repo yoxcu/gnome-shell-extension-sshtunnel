@@ -1,7 +1,7 @@
 const {GLib } = imports.gi;
 const Bytes  = imports.byteArray
 
-function updateTunnelState(tunnel){
+function updateServiceState(tunnel){
     if (tunnel.enabled){
         return runCmd(getStartServiceCmd(tunnel))
     } else {
@@ -9,7 +9,7 @@ function updateTunnelState(tunnel){
     }
 }
 
-function updateTunnelStateAsync(tunnel){
+function updateServiceStateAsync(tunnel){
     if (tunnel.enabled){
         return runCmdAsync(getStartServiceCmd(tunnel))
     } else {
@@ -41,7 +41,10 @@ function runCmdAsync(cmd){
 function getServicesState(services) {
     let [ok, out, err, exit] = safeSpawn(["systemctl","is-failed", ...services].filter(item => !!item).join(" "))
     out = Bytes.toString(out)
-    return out.split('\n').filter(item => !!item);
+    return out.split('\n').filter(item => !!item)
+    //return out.split('\n').filter(item => !!item).reduce(
+    //    (all, value, idx) => ({ ...all, [services[idx]]: value }), {}
+    //);
 }
 
 function safeSpawn(cmd) {

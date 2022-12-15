@@ -35,40 +35,48 @@ const Tunnel = Me.imports.utils.tunnel;
 const Indicator = GObject.registerClass(
 class Indicator extends PanelMenu.Button {
     _init() {
+        super._init(0.0, _('SSH Tunnel Indicator'));
         this.settings = ExtensionUtils.getSettings(
         'org.gnome.shell.extensions.sshtunnel');
+
+        
+        this.show_activating();
+        this.newSettings = true;
+        this.refresh();
+        this.fillMenu();
+
         this.settings.connect('changed', () => {
             this.newSettings = true;
         })
-        
-        this.show_activating();
-        super._init(0.0, _('SSH Tunnel Indicator'));
-        this.newSettings = true;
-        this.update();
+
+        this.menu.connect('open-state-changed', () => {
+            this.refresh();
+        })
     }
 
     reloadSettings(){
+        print("reloading Settings")
         this.tunnels = Tunnel.parseTunnels(this.settings.get_strv('tunnels'));
         this.serviceNames = [];
         this.tunnels.filter(tunnel => tunnel.enabled).forEach(tunnel => {
             this.serviceNames.push("sshtunnel."+tunnel.user+"@"+tunnel.id)
         })
         this.showSettingsButton = this.settings.get_boolean('show-settings');
-        this.refreshTime = this.settings.get_int('refresh-time');
-        this.updateTimeChanged();
+        this.refreshTimeChanged();
         this.newSettings = false;
     }
 
     saveSettings(){
-        let str = Tunnel.stringifyTunnels(this.tunnels);
+        const str = Tunnel.stringifyTunnels(this.tunnels);
         this.settings.set_strv("tunnels",str);
     }
 
     initializeTimer() {
+        const refreshTime = this.settings.get_int('refresh-time');
         // used to query sensors and update display
-        this.refreshTimeoutId = Mainloop.timeout_add_seconds(this.refreshTime, (self) => {
+        this.refreshTimeoutId = Mainloop.timeout_add_seconds(refreshTime, (self) => {
             // only update menu if we have hot sensors
-            this.update();
+            this.refresh();
 
             // keep the timer running
             return true;
@@ -83,45 +91,62 @@ class Indicator extends PanelMenu.Button {
         }
     }
 
-    updateTimeChanged() {
+    refreshTimeChanged() {
         this.destroyTimer();
         this.initializeTimer();
     }
 
-    update(){
+    fillMenu(){
+        print("filling Menu")
         this.menu.removeAll();
-        this.remove_child(this.icon);
-        if (this.newSettings){
-            this.reloadSettings();
-        }
 
         this.tunnels.forEach(tunnel => {
             const toggle = new PopupMenu.PopupSwitchMenuItem(tunnel.hostname, tunnel.enabled);
             this.menu.addMenuItem(toggle);
             toggle.connect('toggled', () => {
                 tunnel.enabled = toggle.state;
-                Service.updateTunnelStateAsync(tunnel);
+                Service.updateServiceStateAsync(tunnel);
                 this.saveSettings();
             });
         });
 
-        let states= Service.getServicesState(this.serviceNames);
-        if (states.length <=0){
+        if (this.showSettingsButton) {
+            if (this.tunnels.length > 0) {
+                const separator = new PopupMenu.PopupSeparatorMenuItem();
+                this.menu.addMenuItem(separator);
+            }
+
+            const settingsButton = new PopupMenu.PopupMenuItem(_('Settings'));
+            settingsButton.connect('activate', () =>{
+                ExtensionUtils.openPrefs();
+            })
+            this.menu.addMenuItem(settingsButton);
+        }
+
+    }
+
+    refresh(){
+        print("refreshing")
+        this.remove_child(this.icon);
+
+        if (this.newSettings){
+            this.reloadSettings();
+        }
+
+        this.serviceStates= Service.getServicesState(this.serviceNames);
+        print(this.serviceStates)
+        if (this.serviceStates.length <=0){
             this.show_empty();
-        }else if (states.every(service => service == "active")){
+        }else if (this.serviceStates.every(service => service == "active")){
             this.show_active();
-        } else if (states.some(service => service == "activating")){
+        } else if (this.serviceStates.some(service => service == "activating")){
             this.show_activating();
         } else {
             this.show_dead();
         }
-   
-        if (this.showSettingsButton) {
-            const settings = new PopupMenu.PopupMenuItem(_('Settings'))
-            settings.connect('activate', () =>{
-                ExtensionUtils.openPrefs();
-            })
-            this.menu.addMenuItem(settings)
+
+        if (this.menu.isOpen){
+            this.fillMenu();
         }
     }
 
