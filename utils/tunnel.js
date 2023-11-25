@@ -1,8 +1,4 @@
-const Config         = imports.misc.config
-const ExtensionUtils = imports.misc.extensionUtils
-const Me             = ExtensionUtils.getCurrentExtension()
-
-function Tunnel(hostname,forwards,reverses,options,user,id=null,enabled=true){
+export function Tunnel(hostname,forwards,reverses,options,user,id=null,enabled=true){
     this.user=user
     this.hostname=hostname;
     this.forwards=forwards;
@@ -13,9 +9,7 @@ function Tunnel(hostname,forwards,reverses,options,user,id=null,enabled=true){
 }
 
 
-function saveTunnel(tunnel){
-    const settings = ExtensionUtils.getSettings(
-        'org.gnome.shell.extensions.sshtunnel');
+export function saveTunnel(settings,tunnel){
     let tunnels = parseTunnels(settings.get_strv("tunnels"));
     let index = tunnels.findIndex(obj => obj.id ==tunnel.id)
     if (index == -1){
@@ -27,9 +21,7 @@ function saveTunnel(tunnel){
     settings.set_strv("tunnels",str);
 }
 
-function getNextTunnelId(){
-    const settings = ExtensionUtils.getSettings(
-        'org.gnome.shell.extensions.sshtunnel');
+export function getNextTunnelId(settings){
     let tunnels = parseTunnels(settings.get_strv("tunnels"));
     if (tunnels.length <=0){
         return 0;
@@ -38,9 +30,7 @@ function getNextTunnelId(){
     }
 }
 
-function deleteTunnel(tunnel){
-    const settings = ExtensionUtils.getSettings(
-        'org.gnome.shell.extensions.sshtunnel');
+export function deleteTunnel(settings,tunnel){
     let tunnels = parseTunnels(settings.get_strv("tunnels"));
     let id = tunnels.findIndex(obj => obj.id ==tunnel.id)
     tunnels.splice(id, 1); // 2nd parameter means remove one item only
@@ -48,7 +38,7 @@ function deleteTunnel(tunnel){
     settings.set_strv("tunnels",str);
 }
 
-function parseTunnels(str){
+export function parseTunnels(str){
     let tunnels = [];
     str.forEach(obj => {
         tunnels.push(JSON.parse(obj));
@@ -56,7 +46,7 @@ function parseTunnels(str){
     return tunnels;
 }
 
-function stringifyTunnels(tunnels){
+export function stringifyTunnels(tunnels){
     let str = [];
     tunnels.forEach(obj => {
         str.push(JSON.stringify(obj));

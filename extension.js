@@ -20,26 +20,24 @@
 
 const GETTEXT_DOMAIN = 'SSHTunnel';
 
-const { GObject, St } = imports.gi;
+import GObject from 'gi://GObject';
+import St from 'gi://St';
+import GLib from 'gi://GLib';
+import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import * as Tunnel from './utils/tunnel.js';
+import * as Service from './utils/service.js';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Main = imports.ui.main;
-const PanelMenu = imports.ui.panelMenu;
-const PopupMenu = imports.ui.popupMenu;
-const Mainloop = imports.mainloop;
-
-const Me = imports.misc.extensionUtils.getCurrentExtension()
-const Service = Me.imports.utils.service;
-const Tunnel = Me.imports.utils.tunnel;
 
 const Indicator = GObject.registerClass(
 class Indicator extends PanelMenu.Button {
     _init() {
         super._init(0.0, _('SSH Tunnel Indicator'));
-        this.settings = ExtensionUtils.getSettings(
-        'org.gnome.shell.extensions.sshtunnel');
+        this.extensionObject = Extension.lookupByUUID('sshtunnel@yoxcu.de');
+        this.settings = this.extensionObject.getSettings('org.gnome.shell.extensions.sshtunnel');
 
-        
         this.show_activating();
         this.newSettings = true;
         this.refresh();
@@ -74,7 +72,7 @@ class Indicator extends PanelMenu.Button {
     initializeTimer() {
         const refreshTime = this.settings.get_int('refresh-time');
         // used to query sensors and update display
-        this.refreshTimeoutId = Mainloop.timeout_add_seconds(refreshTime, (self) => {
+        this.refreshTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT,refreshTime, (self) => {
             // only update menu if we have hot sensors
             this.refresh();
 
@@ -86,7 +84,7 @@ class Indicator extends PanelMenu.Button {
     destroyTimer() {
         // invalidate and reinitialize timer
         if (this.refreshTimeoutId != null) {
-            Mainloop.source_remove(this.refreshTimeoutId);
+            GLib.Source.remove(this.refreshTimeoutId);
             this.refreshTimeoutId = null;
         }
     }
@@ -118,7 +116,7 @@ class Indicator extends PanelMenu.Button {
 
             const settingsButton = new PopupMenu.PopupMenuItem(_('Settings'));
             settingsButton.connect('activate', () =>{
-                ExtensionUtils.openPrefs();
+                this.extensionObject.openPreferences();
             })
             this.menu.addMenuItem(settingsButton);
         }
@@ -189,12 +187,7 @@ class Indicator extends PanelMenu.Button {
 });
 
 
-class Extension {
-    constructor(uuid) {
-        this._uuid = uuid;
-
-        ExtensionUtils.initTranslations(GETTEXT_DOMAIN);
-    }
+export default class SshTunnelExtension extends Extension {
 
     enable() {
         this._indicator = new Indicator();
@@ -207,6 +200,3 @@ class Extension {
     }
 }
 
-function init(meta) {
-    return new Extension(meta.uuid);
-}

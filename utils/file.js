@@ -1,11 +1,8 @@
-const {Gio} = imports.gi;
+import Gio from 'gi://Gio';
+import * as Tunnel from './tunnel.js';
+import * as Service from './service.js';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-const Service = Me.imports.utils.service;
-const Tunnel = Me.imports.utils.tunnel;
-
-function createServiceFiles(tunnel){
+export function createServiceFiles(tunnel){
     let files = [];
     let serviceFile = getServiceFile(tunnel);
     if (serviceFile != null){
@@ -23,7 +20,7 @@ function createServiceFiles(tunnel){
     return Service.runCmd(cmd);
 }
 
-function getServiceFile(tunnel){
+export function getServiceFile(tunnel){
     const serviceFile = Gio.File.new_for_path('/etc/systemd/system/sshtunnel.' + tunnel.user + '@.service');
     let replacements = {"%USER%":tunnel.user};
     let str = Service.getServiceFile().replace(/%\w+%/g, function(all) {
@@ -40,7 +37,7 @@ function getServiceFile(tunnel){
     return [tempFile.get_path(),serviceFile.get_path()];
 }
 
-function getTunnelFile(tunnel){
+export function getTunnelFile(tunnel){
     const tunnelFile = Gio.File.new_for_path('/etc/default/sshtunnel@' + tunnel.id);
     let forwards = getStringFromArray(tunnel.forwards,"-L");
     let reverses = getStringFromArray(tunnel.reverses,"-R");
@@ -60,9 +57,7 @@ function getTunnelFile(tunnel){
     return [tempFile.get_path(),tunnelFile.get_path()];
 }
 
-function deleteServiceFiles(tunnel){
-    const settings = ExtensionUtils.getSettings(
-        'org.gnome.shell.extensions.sshtunnel');
+export function deleteServiceFiles(settings,tunnel){
     let tunnels = Tunnel.parseTunnels(settings.get_strv("tunnels"));
     let tunnelsSameUser = tunnels.filter(obj => obj.user == tunnel.user);
     let files = ['/etc/default/sshtunnel@' + tunnel.id];
@@ -74,7 +69,7 @@ function deleteServiceFiles(tunnel){
     return Service.runCmd(cmd);
 }
 
-function checkFileContent(path,text){
+export function checkFileContent(path,text){
     const file = Gio.File.new_for_path(path);
     if (file.query_exists(null)){
         const [, contents, etag] = file.load_contents(null);
@@ -89,7 +84,7 @@ function checkFileContent(path,text){
 
 //sudo file Operations
 
-function getMoveFilesCmd(files){
+export function getMoveFilesCmd(files){
     if (files.length <= 0) {
         return true;
     }
@@ -101,7 +96,7 @@ function getMoveFilesCmd(files){
     return cmd;
 }
 
-function getDeleteFilesCmd(files){
+export function getDeleteFilesCmd(files){
     if (files.length <= 0) {
         return true;
     }
@@ -115,7 +110,7 @@ function getDeleteFilesCmd(files){
 
 //helper Functions
 
-function getStringFromArray(arr,delimiter){
+export function getStringFromArray(arr,delimiter){
     let str = "";
     arr.forEach(obj => {
         str +=delimiter + " " + obj + " ";

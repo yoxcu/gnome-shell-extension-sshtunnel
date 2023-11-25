@@ -1,7 +1,7 @@
-const {GLib } = imports.gi;
+import GLib from 'gi://GLib';
 const Bytes  = imports.byteArray
 
-function updateServiceState(tunnel){
+export function updateServiceState(tunnel){
     if (tunnel.enabled){
         return runCmd(getStartServiceCmd(tunnel))
     } else {
@@ -9,7 +9,7 @@ function updateServiceState(tunnel){
     }
 }
 
-function updateServiceStateAsync(tunnel){
+export function updateServiceStateAsync(tunnel){
     if (tunnel.enabled){
         return runCmdAsync(getStartServiceCmd(tunnel))
     } else {
@@ -17,28 +17,28 @@ function updateServiceStateAsync(tunnel){
     }
 }
 
-function getRestartServiceCmd(tunnel){
+export function getRestartServiceCmd(tunnel){
     return 'systemctl restart --no-block sshtunnel.' + tunnel.user + '@' + tunnel.id + '.service; ';
 }
 
-function getStartServiceCmd(tunnel){
+export function getStartServiceCmd(tunnel){
     return 'systemctl enable --now --no-block sshtunnel.' + tunnel.user + '@' + tunnel.id + '.service; ';
 }
 
-function getStopServiceCmd(tunnel){
+export function getStopServiceCmd(tunnel){
     return 'systemctl disable --now --no-block sshtunnel.' + tunnel.user + '@' + tunnel.id + '.service; ';
 }
 
-function runCmd(cmd){
+export function runCmd(cmd){
     let [ok, out, err, exit] = safeSpawn(`pkexec sh -c "${cmd}"`);
     return exit == 0;
 }
 
-function runCmdAsync(cmd){
+export function runCmdAsync(cmd){
     return GLib.spawn_command_line_async(`sh -c "${cmd}"`);
 }
 
-function getServicesState(services) {
+export function getServicesState(services) {
     let [ok, out, err, exit] = safeSpawn(["systemctl","is-failed", ...services].filter(item => !!item).join(" "))
     out = Bytes.toString(out)
     return out.split('\n').filter(item => !!item)
@@ -47,7 +47,7 @@ function getServicesState(services) {
     //);
 }
 
-function safeSpawn(cmd) {
+export function safeSpawn(cmd) {
   try {
     return GLib.spawn_command_line_sync(cmd)
   } catch (e) {
@@ -55,7 +55,7 @@ function safeSpawn(cmd) {
   }
 }
 
-function getServiceFile () {
+export function getServiceFile () {
     return '[Unit] \n\
 Description=%USER%@%I SSH Tunnel \n\
 After=network-online.target ssh.service \n\
@@ -73,7 +73,7 @@ TimeoutStopSec=10 \n\
 WantedBy=multi-user.target \n';
 }
 
-function getTunnelFile () {
+export function getTunnelFile () {
 return '# Options for sshtunnel.user@host1.service \n\
 # Place it at /etc/default \n\
 \n\
