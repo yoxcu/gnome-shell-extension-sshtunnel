@@ -53,7 +53,7 @@ class Indicator extends PanelMenu.Button {
     }
 
     reloadSettings(){
-        print("reloading Settings")
+        //print("reloading Settings")
         this.tunnels = Tunnel.parseTunnels(this.settings.get_strv('tunnels'));
         this.serviceNames = [];
         this.tunnels.filter(tunnel => tunnel.enabled).forEach(tunnel => {
@@ -95,7 +95,7 @@ class Indicator extends PanelMenu.Button {
     }
 
     fillMenu(){
-        print("filling Menu")
+        //print("filling Menu")
         this.menu.removeAll();
 
         this.tunnels.forEach(tunnel => {
@@ -124,7 +124,7 @@ class Indicator extends PanelMenu.Button {
     }
 
     refresh(){
-        print("refreshing")
+        //print("refreshing")
         this.remove_child(this.icon);
 
         if (this.newSettings){
@@ -132,7 +132,7 @@ class Indicator extends PanelMenu.Button {
         }
 
         this.serviceStates= Service.getServicesState(this.serviceNames);
-        print(this.serviceStates)
+        //print(this.serviceStates)
         if (this.serviceStates.length <=0){
             this.show_empty();
         }else if (this.serviceStates.every(service => service == "active")){
