@@ -5,7 +5,8 @@
   "settings-schema": "org.gnome.shell.extensions.sshtunnel",
   "shell-version": [
     "45",
-    "46"
+    "46",
+    "47"
   ],
   "url": "https://github.com/yoxcu/gnome-shell-extension-sshtunnel",
   "gettext-domain": "SSHTunnel",
